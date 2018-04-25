@@ -60,6 +60,7 @@ function SimulatorWidget(node) {
     editor.keydown(ui.captureTabInEditor);
 
     $(document).keypress(memory.storeKeypress);
+    $(document).keyup(memory.clearKeypress);
 
     simulator.handleMonitorRangeChange();
   }
@@ -265,6 +266,11 @@ function SimulatorWidget(node) {
     function storeKeypress(e) {
       var value = e.which;
       memory.storeByte(0xff, value);
+    }
+
+    // Clear keycode in ZP $ff (any key-up will clear the location)
+    function clearKeypress(e) {
+      memory.storeByte(0xff, 0);
     }
 
     function format(start, length) {
