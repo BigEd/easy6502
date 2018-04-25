@@ -22,7 +22,8 @@ so's Latin. And they still teach that.
 [Q.E.D.](http://en.wikipedia.org/wiki/Q.E.D.)
 
 (Actually, I've been reliably informed that 6502 processors are still being
-produced by [Western Design Center](http://www.65xx.com/wdc/), so clearly 6502
+produced by [Western Design Center](http://www.westerndesigncenter.com/wdc/w65c02s-chip.cfm)
+and [sold to hobbyists](http://www.mouser.co.uk/Search/Refine.aspx?Keyword=65C02), so clearly 6502
 *isn't* a dead language! Who knew?)
 
 Seriously though, I think it's valuable to have an understanding of assembly
@@ -118,7 +119,7 @@ location `$0600`, so `PC` always starts there.
 The last section shows the processor flags. Each flag is one bit, so all seven
 flags live in a single byte. The flags are set by the processor to give
 information about the previous instruction. More on that later. [Read more
-about the registers and flags here](http://www.obelisk.demon.co.uk/6502/registers.html).
+about the registers and flags here](http://www.obelisk.me.uk/6502/registers.html).
 
 
 <h2 id='instructions'>Instructions</h2>
@@ -169,7 +170,7 @@ is set by all instructions where the result is zero.
 
 A full list of the 6502 instruction set is [available
 here](http://www.6502.org/tutorials/6502opcodes.html) and
-[here](http://www.obelisk.demon.co.uk/6502/reference.html) (I usually refer to
+[here](http://www.obelisk.me.uk/6502/reference.html) (I usually refer to
 both pages as they have their strengths and weaknesses). These pages detail the
 arguments to each instruction, which registers they use, and which flags they
 set. They are your bible.
@@ -208,7 +209,7 @@ First we load the value `$08` into the `X` register. The next line is a label.
 Labels just mark certain points in a program so we can return to them later.
 After the label we decrement `X`, store it to `$0200` (the top-left pixel), and
 then compare it to the value `$03`.
-[`CPX`](http://www.obelisk.demon.co.uk/6502/reference.html#CPX) compares the
+[`CPX`](http://www.obelisk.me.uk/6502/reference.html#CPX) compares the
 value in the `X` register with another value. If the two values are equal, the
 `Z` flag is set to `1`, otherwise it is set to `0`.
 
@@ -508,8 +509,35 @@ illustrates how `JSR` and `RTS` can be used together to create modular code.
 Now, let's put all this knowledge to good use, and make a game! We're going to
 be making a really simple version of the classic game 'Snake'.
 
+Even though this will be a simple version, the code will be substantially larger
+than all the previous examples. We will need to keep track of several memory
+locations together for the various aspects of the game. We can still do
+the necessary bookkeeping throughout the program ourselves, as before, but
+on a larger scale that quickly becomes tedious and can also lead to bugs that
+are difficult to spot. Instead we'll now let the assembler do some of the
+mundane work for us.
+
+In this assembler, we can define descriptive constants (or symbols) that represent
+numbers. The rest of the code can then simply use the constants instead of the
+literal number, which immediately makes it obvious what we're dealing with.
+You can use letters, digits and underscores in a name.
+
+Here's an example. Note that immediate operands are still prefixed with a `#`.
+{% include start.html %}
+  define  sysRandom  $fe ; an adress
+  define  a_dozen    $0c ; a constant
+ 
+  LDA sysRandom  ; equivalent to "LDA $fe"
+
+  LDX #a_dozen   ; equivalent to "LDX #$0c"
+{% include end.html %}
+
 The simulator widget below contains the entire source code of the game. I'll
 explain how it works in the following sections.
+
+[Willem van der Jagt](https://twitter.com/wkjagt) made a [fully annotated gist
+of this source code](https://gist.github.com/wkjagt/9043907), so follow along
+with that for more details.
 
 {% include snake.html %}
 
@@ -595,7 +623,7 @@ and `$15`. This leads to memory like this:
     0010: 11 04 10 04 0f 04
 
 which represents the indirectly-addressed memory locations `$0411`, `$0410` and
-`$04ff` (three pixels in the middle of the display). I'm labouring this point,
+`$040f` (three pixels in the middle of the display). I'm labouring this point,
 but it's important to fully grok how indirect addressing works.
 
 The next subroutine, `generateApplePosition`, sets the apple location to a
@@ -605,12 +633,12 @@ stored into `$00`. Next, a different random byte is loaded into the
 accumulator, which is then `AND`-ed with the value `$03`. This part requires a
 bit of a detour.
 
-The hex value `$03` is represented in binary as `00000111`. The `AND` opcode
+The hex value `$03` is represented in binary as `00000011`. The `AND` opcode
 performs a bitwise AND of the argument with the accumulator. For example, if
-the accumulator contains the binary value `01010101`, then the result of `AND`
-with `00000111` will be `00000101`.
+the accumulator contains the binary value `10101010`, then the result of `AND`
+with `00000011` will be `00000010`.
 
-The effect of this is to mask out the least significant three bytes of the
+The effect of this is to mask out the least significant two bits of the
 accumulator, setting the others to zero. This converts a number in the range of
 0&ndash;255 to a number in the range of 0&ndash;3.
 
@@ -635,7 +663,7 @@ state. This loop is no different.
 The first subroutine, `readKeys`, takes the job of accepting user input. The
 memory location `$ff` holds the ascii code of the most recent key press in this
 simulator. The value is loaded into the accumulator, then compared to `$77`
-(the hex code for W), `$64` (D), `$73` (S) and `$61`. If any of these
+(the hex code for W), `$64` (D), `$73` (S) and `$61` (A). If any of these
 comparisons are successful, the program branches to the appropriate section.
 Each section (`upKey`, `rightKey`, etc.) first checks to see if the current
 direction is the opposite of the new direction. This requires another little detour.
@@ -681,18 +709,18 @@ pair of bytes for simplicity.
 
       0    1    2    3    4
     Head                 Tail
-
+    
     [1,5][1,4][1,3][1,2][2,2]    Starting position
 
     [1,5][1,4][1,3][1,2][1,2]    Value of (3) is copied into (4)
-
-    [1,5][1,4][1,3][1,2][1,2]    Value of (2) is copied into (3)
-
-    [1,5][1,4][1,3][1,2][1,2]    Value of (1) is copied into (2)
-
-    [1,5][1,4][1,3][1,2][1,2]    Value of (0) is copied into (1)
-
-    [0,4][1,4][1,3][1,2][1,2]    Value of (0) is updated based on direction
+    
+    [1,5][1,4][1,3][1,3][1,2]    Value of (2) is copied into (3)
+    
+    [1,5][1,4][1,4][1,3][1,2]    Value of (1) is copied into (2)
+    
+    [1,5][1,5][1,4][1,3][1,2]    Value of (0) is copied into (1)
+    
+    [0,5][1,5][1,4][1,3][1,2]    Value of (0) is updated based on direction
 
 At a low level, this subroutine is slightly more complex. First, the length is
 loaded into the `X` register, which is then decremented. The snippet below
@@ -766,13 +794,14 @@ stores this value into `($00),y`. `$00` is where the location of the apple is
 stored, so `($00),y` dereferences to this memory location. Read the "Indirect
 indexed" section in [Addressing modes](#addressing) for more details.
 
-Next comes `drawSnake`. This is pretty simple too. `X` is set to zero and `A`
-to one. We then store `A` at `($10,x)`. `$10` stores the two-byte location of
-the head, so this draws a white pixel at the current head position. Next we
-load `$03` into `X`. `$03` holds the length of the snake, so `($10,x)` in this
-case will be the location of the tail. Because `A` is zero now, this draws a
-black pixel over the tail. As only the head and the tail of the snake move,
-this is enough to keep the snake moving.
+Next comes `drawSnake`. This is pretty simple too - we first undraw the tail
+and then draw the head. `X` is set to the length of the snake, so we can index
+to the right pixel, and we set `A` to zero then perform the write using the
+indexed indirect addressing mode. Then we reload `X` to index to the head, set
+`A` to one and store it at `($10,x)`. `$10` stores the two-byte location of
+the head, so this draws a white pixel at the current head position. As only
+the head and the tail of the snake move, this is enough to keep the snake
+moving.
 
 The last subroutine, `spinWheels`, is just there because the game would run too
 fast otherwise. All `spinWheels` does is count `X` down from zero until it hits
