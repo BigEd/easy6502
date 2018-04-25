@@ -297,6 +297,7 @@ function SimulatorWidget(node) {
       getWord: getWord,
       storeByte: storeByte,
       storeKeypress: storeKeypress,
+      clearKeypress: clearKeypress,
       format: format
     };
   }
